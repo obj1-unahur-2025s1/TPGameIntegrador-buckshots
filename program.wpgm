@@ -1,0 +1,17 @@
+import wollok.game.*
+import arma.*
+import consumibles.*
+import joystick.*
+import mesaCompleta.*
+import player.*
+import juego.*
+
+program BuckshotRoulette {
+	game.title("Buckshot Roulette")
+	game.height(18)
+	game.width(36)
+	game.boardGround("fondoPiso.jpg")
+	juego.abrirJuego()
+	game.start()
+}
+
