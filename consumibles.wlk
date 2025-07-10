@@ -9,6 +9,14 @@ import juego.*
 class Consumible {
   var position = game.at(16, 4)
   
+  method autoEliminacion() {
+    if((!jugador.tengoConsumible(self) and !ia.tengoConsumible(self)) and game.hasVisual(self)) {
+      game.removeVisual(self)
+    }
+  }
+
+  method texto()
+
   method tipoConsumible()
   
   method usar()
@@ -21,6 +29,12 @@ class Consumible {
     position = unaPosicion
   }
   
+  method mostrarDetalles() {
+    if(game.hasVisual(recordatorioAdrenalina)) {
+      game.removeVisual(recordatorioAdrenalina)
+    }
+  }
+
   method image()
 } // Pensar métodos en común a todos los consumibles
 
@@ -42,6 +56,8 @@ class Bebida inherits Consumible {
 }
 
 class Cerveza inherits Bebida {
+  override method texto() = "textoCerveza350.png" //
+
   override method usar() {
     //escopeta.enRecamara() // Hacer que muestre al jugador la bala que salió
     super()
@@ -62,6 +78,8 @@ class CervezaLight inherits Cerveza {
 }
 
 class CervezaVencida inherits Cerveza {
+  override method texto() = "textoCervezaVencida.png" //
+
   override method usar() {
     super()
     if (mesa.probabilidad(0.25)) {
@@ -82,6 +100,8 @@ class CervezaVencida inherits Cerveza {
 }
 
 class Soda inherits Bebida {
+  override method texto() = "textoSoda.png" //
+
   override method usar() {
     if (1 < escopeta.cantCartuchos()) {
       super()
@@ -110,6 +130,8 @@ class Curacion inherits Consumible {
 } // Pasar a abstracta
 
 class Pucho inherits Curacion {
+  override method texto() = "textoPucho.png" //
+
   override method usar() {
     sonido.puchos()
     super()
@@ -119,6 +141,8 @@ class Pucho inherits Curacion {
 }
 
 class Habano inherits Pucho {
+  override method texto() = "textoHabano.png" //
+
   override method usar() {
     sonido.puchos()
     
@@ -132,6 +156,8 @@ class Habano inherits Pucho {
 }
 
 class Venda inherits Curacion {
+  override method texto() = "textoVenda.png" //
+
   override method usar() {
     sonido.vendas()
     monitor.turnoDe().sumarVida(2) 
@@ -143,6 +169,8 @@ class Venda inherits Curacion {
 }
 
 class Pastilla inherits Curacion {
+  override method texto() = "textoPastilla.png" //
+
   override method usar() {
     if (mesa.probabilidad(0.5)) {
       sonido.pildoraGanas()
@@ -167,6 +195,8 @@ class Pastilla inherits Curacion {
 } ///////////////SERRUCHO/////////////////
 
 class Serrucho inherits Consumible {
+  override method texto() = "textoSerrucho.png" //
+
   override method tipoConsumible() = "Serrucho"
   
   override method usar() {
@@ -180,6 +210,8 @@ class Serrucho inherits Consumible {
 }
 
 class SerruchoOxidado inherits Serrucho {
+  override method texto() = "textoSerruchoOxidado2.png"
+
   override method usar() {
     if (mesa.probabilidad(0.25)) {
       super()
@@ -189,7 +221,7 @@ class SerruchoOxidado inherits Serrucho {
     }
   }
   
-  override method descripcion() = super() + "... con un 25% de inhabilitar el siguiente disparo"
+  override method descripcion() = super() + ". 25% de inhabilitar el siguiente disparo"
   
   override method image() = "serruchoGodOxidado.png"
 }
@@ -201,6 +233,8 @@ class Informacion inherits Consumible {
 }
 
 class Lupa inherits Informacion {
+  override method texto() = "textoLupa.png" //
+
   override method descripcion() = super() + "l cartucho en la recamara"
   
   override method usar() {
@@ -227,6 +261,8 @@ class Lupa inherits Informacion {
 }
 
 class Telefono inherits Informacion {
+  override method texto() = "textoTelefono.png" //
+
   var imagen = "telefonoApagado.png"
   
   override method descripcion() = super() + " una posición del cargador"
@@ -265,6 +301,8 @@ class Telefono inherits Informacion {
 
 
 class Inversor inherits Consumible {
+  override method texto() = "textoInversor.png" //
+
   override method tipoConsumible() = "Inversor"
   override method descripcion() = "Invierte el valor de la bala en la recamara"
   
@@ -278,6 +316,8 @@ class Inversor inherits Consumible {
 
 
 class Esposas inherits Consumible {
+  override method texto() = "textoEsposas.png" //
+
   override method tipoConsumible() = "Esposas"
   override method descripcion() = "Esposa al adversario, haciéndole perder un turno"
   
@@ -289,6 +329,8 @@ class Esposas inherits Consumible {
   override method image() = "esposa.png"
 }
 class Adrenalina inherits Consumible {
+  override method texto() = "textoAdrenalina.png" //
+
   override method tipoConsumible() = "Adrenalina"
   override method descripcion() = "Roba un objeto y úsalo al instante, tenes 7 segundos"
   
@@ -300,12 +342,20 @@ class Adrenalina inherits Consumible {
 
   method usoJugador() {
     monitor.turnoDe().podesRobar()
-    game.schedule(7000, {if(jugador.puedeRobar()) {jugador.noPodesRobar()}})
+    game.schedule(10000, {if(jugador.puedeRobar()) {jugador.noPodesRobar()}})
   }
 
   method usoIa() {
     jugador.unConsumible().usar() // Qué pasa si roba un serrucho o unas esposas y no las puede usar?
   }
+
+
+  override method mostrarDetalles() {
+    if(not game.hasVisual(recordatorioAdrenalina)) {
+      game.addVisual(recordatorioAdrenalina)
+    }
+  }
+
 
   method turnoActual(unJugador) = monitor.turnoDe() == unJugador
   override method image() = "inyeccion.png"

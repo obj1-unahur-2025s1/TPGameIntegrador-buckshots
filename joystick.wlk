@@ -67,7 +67,9 @@ object manejoJoystick {
     if(self.miTurno() and !slotEscopeta.seleccionada()) {
       sonido.seleccionEscopeta()
       joystick.seleccionarEscopeta()
+      self.quitarEscopetaSegura() //
     } else if(self.miTurno()) {
+      self.quitarEscopetaSegura() //
       joystick.deseleccionarEscopeta()
     }
   }
@@ -78,38 +80,60 @@ object manejoJoystick {
     }
   }
 
+  method quitarEscopetaSegura() {
+    if(game.hasVisual(escopeta)) {
+      game.removeVisual(escopeta)
+    } else {
+      game.addVisual(escopeta)
+    }
+  }
+
+
   method mostrarSlot(unaPosicion) {
     jugador.inventario().forEach{x=>game.removeVisual(x)}
     game.addVisual(jugador.inventario().get(unaPosicion))
   }
 
   method derecha() {
-    if(self.miTurno()) {
+    if(self.miTurno() and not maletin.estoyEnUso()) {
       sonido.seleccion()
       joystick.slotSiguiente()
       self.mostrarSlot(jugador.slotSeleccionado())
+
+      self.mostrarDescripcion()
     }
   }
   method izquierda() {
-    if(self.miTurno()) {
+    if(self.miTurno() and not maletin.estoyEnUso()) {
       sonido.seleccion()
       joystick.slotAnterior()
       self.mostrarSlot(jugador.slotSeleccionado())
+
+      self.mostrarDescripcion()
     }
   }
   method arriba() {
-    if(self.miTurno()) {
+    if(self.miTurno() and not maletin.estoyEnUso()) {
       sonido.seleccion()
       joystick.slotSuperior()
       self.mostrarSlot(jugador.slotSeleccionado())
+
+      self.mostrarDescripcion()
     }
   }
   method abajo() {
-    if(self.miTurno()) {
+    if(self.miTurno() and not maletin.estoyEnUso()) {
       sonido.seleccion()
       joystick.slotInferior()
       self.mostrarSlot(jugador.slotSeleccionado())
+      
+      self.mostrarDescripcion()
     }
+  }
+
+  method mostrarDescripcion() {
+    textoConsumible.imagen(jugador.inventario().get(jugador.slotSeleccionado()).consumible().texto())
+    jugador.inventario().get(jugador.slotSeleccionado()).consumible().mostrarDetalles()
   }
 
   method miTurno() = monitor.turnoDe() == jugador

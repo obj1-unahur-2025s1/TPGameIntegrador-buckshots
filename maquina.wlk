@@ -99,10 +99,11 @@ object ia {
 
   method nuevoConsumible() {
     var consumibleRandom = mesa.randomReadyObject()
+    rastreadorObjetos.rastrearConsumible(consumibleRandom)
     var slotElegido = self.unSlotVacio()
     slotElegido.colocar(consumibleRandom)
     consumibleRandom.nuevaPosicion(slotElegido.position())
-    game.addVisual(consumibleRandom)
+    maletinIA.nuevoObjeto(consumibleRandom)
   }
   method unSlotVacio() = inventario.find( {x => x.consumible().tipoConsumible() == "SlotVacio"} )
 
@@ -183,8 +184,10 @@ object ia {
 
   method meCorresponde() {
     return
-    monitor.turnoDe() == self and not maletin.estoyEnUso() and not self.estoyEjecutando() and not escopeta.sinBalas() and not mesa.pausaDeNuevoNivel() and not pantalla.finDelJuego()
+    monitor.turnoDe() == self and not maletin.estoyEnUso() and not self.estoyEjecutando() and not escopeta.sinBalas() and not mesa.pausaDeNuevoNivel() and not pantalla.finDelJuego() and not juego.estoyEnPausa() and not juego.animacionEnEjecucion()
   }
+
+
 
   var estoyEjecutando = false
 
@@ -218,11 +221,11 @@ object ia {
       })
       game.schedule(7000, {self.ejecutarMejorAccionSiCorresponde()})
     } else {
-      game.schedule(4000, {
+      game.schedule(2000, {
         self.usarObjetos()
         
       })
-      game.schedule(5000, {
+      game.schedule(6000, {
         self.ejecutarMejorAccionSiCorresponde()
       })
     }
@@ -248,7 +251,17 @@ object ia {
   }
 
   method ejecutarMejorAccion() {self.mejorAccion().ejecutar()}
+
+  method menu() {
+    self.limpiarObjetos()
+    inventario.clear()
+    vidas = 0
+  }
   
+
+  method tengoConsumible(unConsumible) = inventario.any{x=>x.consumible() == unConsumible}
+
+
   method image() {
     return
     if(vidas == 4) "contador4.png"

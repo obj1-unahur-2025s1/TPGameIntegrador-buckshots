@@ -82,6 +82,56 @@ object escopeta {
     cargador.addAll(cartuchos)
   }
   
+
+  method dispararArriba(unJugador) {
+    if((self.recamara() and daño == 1)) {
+      apuntaArribaBoom.itsTimeForTheDurabilityTest()
+      self.aQuienDisparoSiApuntoArriba(unJugador)
+    } else if(!self.recamara() and daño == 1) {
+      apuntaArribaNoBoom.itsTimeForTheDurabilityTest()
+      self.aQuienDisparoSiApuntoArriba(unJugador)
+    } else if(self.recamara() and daño == 2) {
+      apuntaArribaBoomRecortada.itsTimeForTheDurabilityTest()
+      self.aQuienDisparoSiApuntoArriba(unJugador)
+    } else if(!self.recamara() and daño == 2) {
+      apuntaArribaNoBoomRecortada.itsTimeForTheDurabilityTest()
+      self.aQuienDisparoSiApuntoArriba(unJugador)
+    }
+  }
+
+  method dispararAbajo(unJugador) {
+    if((self.recamara() and daño == 1)) {
+      apuntaAbajoBoom.itsTimeForTheDurabilityTest()
+      self.aQuienDisparoSiApuntoAbajo(unJugador)
+    } else if(!self.recamara() and daño == 1) {
+      apuntaAbajoNoBoom.itsTimeForTheDurabilityTest()
+      self.aQuienDisparoSiApuntoAbajo(unJugador)
+    } else if(self.recamara() and daño == 2) {
+      apuntaAbajoBoomRecortada.itsTimeForTheDurabilityTest()
+      self.aQuienDisparoSiApuntoAbajo(unJugador)
+    } else if(!self.recamara() and daño == 2) {
+      apuntaAbajoNoBoomRecortada.itsTimeForTheDurabilityTest()
+      self.aQuienDisparoSiApuntoAbajo(unJugador)
+    }
+  }
+
+  method aQuienDisparoSiApuntoArriba(unJugador) {
+    if(unJugador == jugador) {
+      game.schedule(3000, {self.disparar(jugador)})
+    } else {
+      game.schedule(3000, {self.dispararse(ia)})
+    }
+  }
+
+  method aQuienDisparoSiApuntoAbajo(unJugador) {
+    if(unJugador == jugador) {
+      game.schedule(3000, {self.dispararse(jugador)})
+    } else {
+      game.schedule(3000, {self.disparar(ia)})
+    }
+  }
+
+
   method disparar(unJugador) {
     // Todo lo referente a disparar
     if(self.recamara()) {
@@ -140,8 +190,19 @@ object escopeta {
   method añadirCartuchoActivoAMesa(siDispara) {new CartuchoSueltoActivo(dispara = siDispara, nro = [0,1].anyOne())}
   method añadirCartuchoUsadoAMesa(siDispara) {new CartuchoSueltoUsado(dispara = siDispara, nro = [0,1].anyOne())}
 
-  method image() = if(daño == 1) "escopeta250.png" else "escopetaRecortada250.png"
-  method position() = game.at(14, 6)
+
+  method menu() {
+    cargador.clear()
+    self.restablecerDaño()
+  }
+
+  method disparaJugador() = monitor.turnoDe() == jugador
+
+  method disparaMaquina() = monitor.turnoDe() == ia
+
+  method image() = if(daño == 1) "laEscopetaRecta.png" else "laRecortadaRecta.png"
+  // method position() = game.at(14, 6)
+  method position() = game.origin()
   method info() = cargador.toString()
 } // (1..5).forEach { i =>
 
@@ -157,14 +218,16 @@ object slotEscopeta {
     game.removeVisual(self)
   }
 
-  method position() = game.at(15, 6)
-  method image() = "marcador_escopeta6.png"
+  method position() = escopeta.position()
+  method image() = self.imagen()
+
+  method imagen() = if(escopeta.daño() == 1) "laEscopetaSeleccionadaFLECHAS2.png" else "laRecortadaSeleccionadaFLECHAS2.png"
 }
 
 object cargadorDeMuestreo {
   var orden = 1
   const valores   = []
-  const cartuchos = []
+  const property cartuchos = []
 
   method cinturon(unCargador) {
     orden = 1
@@ -192,9 +255,19 @@ class Cartucho {
   const dispara
   const orden
 
-  method image() = if(dispara) "balaVerdad.png" else "balaFogueo.png"
+  method autoEliminacion() {
+    if(!cargadorDeMuestreo.cartuchos().contains(self) and game.hasVisual(self)) {
+      game.removeVisual(self)
+    }
+  }
 
-  method position() = game.at(18 + orden, 9)
+  method image() = if(dispara) "balaRojaNitida.png" else "balaAzulNitida.png" ///////////////
+
+  method position() = game.at(20 + orden, 8)
+
+  method initialize() {
+    rastreadorObjetos.rastrearCartuchoMuestreo(self)
+  }
 }
 
 class CartuchoSueltoActivo {
@@ -215,9 +288,18 @@ class CartuchoSueltoActivo {
   method unoDeVerdad() = self.cartuchosVerdad().get(nro)
   method unoDeFogueo() = self.cartuchosFogueo().get(nro)
 
+
+  method autoEliminacion() {
+    if(!cartuchosEnMesa.cartuchosSueltos().contains(self) and game.hasVisual(self)) {
+      game.removeVisual(self)
+    }
+  }
+
+
   method image() = if(dispara) self.unoDeVerdad() else self.unoDeFogueo()
   method position() = posicion
   method initialize() {
+    rastreadorObjetos.rastrearCartucho(self)
     cartuchosEnMesa.elegirUnaPosicion()
     posicion = game.at(cartuchosEnMesa.lugarEnMesa().get(0), cartuchosEnMesa.lugarEnMesa().get(1))
     cartuchosEnMesa.nuevoCartuchoSuelto(self)
@@ -241,7 +323,7 @@ object cartuchosEnMesa {
 
   const lugaresOcupados = #{}
 
-  const cartuchosSueltos = []
+  const property cartuchosSueltos = []
 
   method nuevoCartuchoSuelto(unCartuchoSuelto) {cartuchosSueltos.add(unCartuchoSuelto)}
 
@@ -271,7 +353,144 @@ object cartuchosEnMesa {
 }
 
 object recamara {
-  method image() = if (escopeta.recamara()) "recamaraDeVerdad.png" else "recamaraDeFogueo.png"
+  method image() = if (escopeta.recamara()) "laRojaEnRecamara.png" else "laAzulEnRecamara.png"
 
   method position() = escopeta.position()
+}
+
+
+
+class AnimacionEscopeta {
+  var estoyEnEjecucion = false
+
+  var tiempoElegido = 1000
+
+  var nroFotogramaActual = 0
+
+  method estoyEnEjecucion() = estoyEnEjecucion
+
+  method siguienteFotograma() {nroFotogramaActual = (nroFotogramaActual + 1).min(5)}
+
+  method fotogramaActual() = self.fotogramas().get(nroFotogramaActual)
+
+  method fotogramas()
+  
+  method itsTimeForTheDurabilityTest() {
+    game.removeVisual(escopeta)
+    game.addVisual(self)
+
+
+    estoyEnEjecucion = true
+    self.fotogramas().forEach{x=>
+      game.schedule(tiempoElegido, {self.siguienteFotograma()})
+      tiempoElegido += 1000
+    }
+
+
+    game.schedule(tiempoElegido + 1000, {game.removeVisual(self)})
+    game.schedule(tiempoElegido + 1000, {game.addVisual(escopeta)})
+
+
+    game.schedule(tiempoElegido + 1000, {estoyEnEjecucion = false})
+
+    game.schedule(((self.fotogramas().size() + 1) * 1000), {
+      nroFotogramaActual = 0
+      tiempoElegido = 1000
+    })
+  }
+
+  method image() = self.fotogramaActual()
+
+  method position() = escopeta.position()
+}
+
+object apuntaArribaBoom inherits AnimacionEscopeta {
+  override method fotogramas() = [
+    "laEscopetaRecta.png",
+    "laEscopetaArriba.png",
+    "laEscopetaArribaBOOM.png",
+    "laEscopetaArriba.png",
+    "laEscopetaRecta.png",
+    "laEscopetaRecta.png"
+  ]
+}
+
+object apuntaArribaNoBoom inherits AnimacionEscopeta {
+  override method fotogramas() = [
+    "laEscopetaRecta.png",
+    "laEscopetaArriba.png",
+    "laEscopetaArriba.png",
+    "laEscopetaArriba.png",
+    "laEscopetaRecta.png",
+    "laEscopetaRecta.png"
+  ]
+}
+
+object apuntaAbajoBoom inherits AnimacionEscopeta {
+  override method fotogramas() = [
+    "laEscopetaRecta.png",
+    "laEscopetaAbajo.png",
+    "laEscopetaAbajo.png",  // no ves el disparo porque estas KO, no?
+    "laEscopetaAbajo.png",
+    "laEscopetaRecta.png",
+    "laEscopetaRecta.png"
+  ]
+}
+
+object apuntaAbajoNoBoom inherits AnimacionEscopeta {
+  override method fotogramas() = [
+    "laEscopetaRecta.png",
+    "laEscopetaAbajo.png",
+    "laEscopetaAbajo.png",
+    "laEscopetaAbajo.png",
+    "laEscopetaRecta.png",
+    "laEscopetaRecta.png"
+  ]
+}
+
+
+
+
+object apuntaArribaBoomRecortada inherits AnimacionEscopeta {
+  override method fotogramas() = [
+    "laRecortadaRecta.png",
+    "laRecortadaArriba.png",
+    "laRecortadaArribaBOOM.png",
+    "laRecortadaArriba.png",
+    "laRecortadaRecta.png",
+    "laRecortadaRecta.png"
+  ]
+}
+
+object apuntaArribaNoBoomRecortada inherits AnimacionEscopeta {
+  override method fotogramas() = [
+    "laRecortadaRecta.png",
+    "laRecortadaArriba.png",
+    "laRecortadaArriba.png",
+    "laRecortadaArriba.png",
+    "laRecortadaRecta.png",
+    "laRecortadaRecta.png"
+  ]
+}
+
+object apuntaAbajoBoomRecortada inherits AnimacionEscopeta {
+  override method fotogramas() = [
+    "laRecortadaRecta.png",
+    "laRecortadaAbajo.png",
+    "laRecortadaAbajo.png",  // no ves el disparo porque estas KO, no?
+    "laRecortadaAbajo.png",
+    "laRecortadaRecta.png",
+    "laRecortadaRecta.png"
+  ]
+}
+
+object apuntaAbajoNoBoomRecortada inherits AnimacionEscopeta {
+  override method fotogramas() = [
+    "laRecortadaRecta.png",
+    "laRecortadaAbajo.png",
+    "laRecortadaAbajo.png",
+    "laRecortadaAbajo.png",
+    "laRecortadaRecta.png",
+    "laRecortadaRecta.png"
+  ]
 }

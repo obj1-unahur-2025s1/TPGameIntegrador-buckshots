@@ -5,6 +5,7 @@ import joystick.*
 import juego.*
 import maquina.*
 
+
 object mesa {
   var umbralVida = 4
   var dandoObjetos = false
@@ -55,6 +56,12 @@ object mesa {
     cargadorDeMuestreo.cinturon(self.ordenDiferente(escopeta.cargador()))
 
     cartuchosEnMesa.barrerCartuchos()
+
+    game.schedule(1000, {
+      game.addVisual(maletin) // Por qué NO me deja en el maletín (???????
+      maletin.ponerEnUso()
+      maletinIA.ponerEnUso()
+    })
   }
 
   var pausaDeNuevoNivel = false
@@ -126,7 +133,7 @@ object mesa {
   method finDelJuego() {if(self.alguienMurio()) {pantalla.final()}}
   method alguienMurio() = false // jugador.muerto() or ia.muerto()
 
-  method image() = "otraMesa2.png"
+  method image() = "ultimaMesa2.png"
 
   method position() = game.at(7, 2)
 }
@@ -137,7 +144,7 @@ class SlotInventario {
 
   const inventarioIa
 
-  const posiciones = [9, 12, 20, 23, 9, 12, 20, 23]
+  const posiciones = [9, 12, 21, 24, 9, 12, 21, 24]
 
   const numeroAsignado
   
@@ -190,11 +197,19 @@ object numerosEnMesa {
 }
 
 class SlotVacio {
+  method texto() = "vacio.png"
+
   method usar() {}
 
   method tipoConsumible() = "SlotVacio"
 
   method descripcion() = "Sirve para mantener el polimorfismo"
+
+  method mostrarDetalles() {
+    if(game.hasVisual(recordatorioAdrenalina)) {
+      game.removeVisual(recordatorioAdrenalina)
+    }
+  }
 }
 
 object efectosEstado {
@@ -262,62 +277,126 @@ object mostrarTurno {
 
 object maletin {
   var estoyEnUso = false
-  var objetoActual = 0
+  
   const property objetosEnInventario = []
-
-  const property nuevosConsumibles = []
 
   method estoyEnUso() = estoyEnUso
   method habilitar() {estoyEnUso = true}
   method desabilitar() {estoyEnUso = false}
 
-  method nuevoObjeto(unConsumible) {nuevosConsumibles.add(unConsumible)}
   method nuevoObjetoInventario(unConsumible) {objetosEnInventario.add(unConsumible)}
+  
   method ponerEnUso() {
-    // self.habilitar()
-    game.addVisual(self)
-    game.schedule(1000, {
-      self.desafortunado()
-    })
+    
+    game.schedule(1000, {self.desafortunado()})
   }
 
   method desafortunado() {
     if(self.sinObjetos()) {
       game.say(self, "Qué desafortunado")
+      // self.desabilitar()
       game.schedule(2000, {self.sacarMaletin()})
     } else {
-      game.addVisual(nuevosConsumibles.get(0))
+      recordatorioTeclas.mostrarSeguro()
+      juego.empezarGameplay()
+      objetoEspejo.imagen(objetosEnInventario.get(0).image())
+      juego.despausar()
+      // game.addVisual(objetosEnInventario.first())
+      // objetosEnInventario.remove(objetosEnInventario.get(0))
+    }
+  }
+
+  method siguienteObjetoSiHay() {
+    if(self.sinObjetos()) {
+      self.sacarMaletin()
+    } else {
+      game.addVisual(objetosEnInventario.get(0))
+      objetosEnInventario.remove(objetosEnInventario.get(0))
+      self.siguienteObjeto()
     }
   }
 
   method siguienteObjeto() {
-    if(!self.sinObjetos()) {
-      game.addVisual(objetosEnInventario.get(objetoActual))
-      objetoActual += 1
-      game.removeVisual(nuevosConsumibles.get(0))
-      nuevosConsumibles.remove(nuevosConsumibles.first())
-      self.mostrarSiguienteObjeto()
-    }
-  }
-  method mostrarSiguienteObjeto() {
     if(self.sinObjetos()) {
       self.sacarMaletin()
     } else {
-      game.addVisual(nuevosConsumibles.get(0))
+      objetoEspejo.imagen(objetosEnInventario.get(0).image())
     }
   }
   
   method sacarMaletin() {
-    game.schedule(1000, {game.removeVisual(self); self.desabilitar()})
-    objetosEnInventario.clear()
-    nuevosConsumibles.clear()
-    objetoActual = 0
+    objetoEspejo.imagen("vacio.png")
+    game.schedule(1000, {
+      game.removeVisual(self)
+      self.desabilitar()
+    })
+    // objetosEnInventario.clear()
   }
-  method esElUltimo() = nuevosConsumibles.size() == 1
 
-  method sinObjetos() = nuevosConsumibles.isEmpty()
+  method sinObjetos() = objetosEnInventario.isEmpty()
+
+  // method image() = if(self.sinObjetos()) "maleton.png" else "maletonConControles"
 
   method image() = "maleton.png"
 
   method position() = game.at(15, 3)
+}
+
+object maletinIA {
+  var tiempoElegido = 1000
+
+  const objetosInventarioIA = []
+
+  method nuevoObjeto(unConsumible) = objetosInventarioIA.add(unConsumible)
+
+  method ponerEnUso() {
+    game.addVisual(self)
+    objetosInventarioIA.forEach{x=>
+      game.schedule(tiempoElegido, {game.addVisual(x)})
+      tiempoElegido += 1000
+    }
+    objetosInventarioIA.clear()
+    game.schedule((tiempoElegido) + 1000, {game.removeVisual(self)})
+    tiempoElegido = 1000
+  }
+
+  method position() = game.at(15, 11)
+
+  method image() = "maletin_ia_205.png"
+}
+
+
+class Descripcion {
+  var imagen = "vacio.png"
+
+  method imagen(nuevaImagen) {
+    game.removeVisual(self)
+    imagen = nuevaImagen
+    game.addVisual(self)
+  }
+
+  method position()
+
+  method image() = imagen
+}
+
+
+object objetoEspejo inherits Descripcion{
+  override method position() = game.at(16, 4)
+}
+
+
+
+object textoConsumible inherits Descripcion{
+  override method position() = game.at(14, 4)
+}
+
+object rastreadorObjetos {
+  const property objetosRastreados = []
+  const property cartuchosRastreados = []
+  const property cartuchosMuestreoRastreados = []
+
+  method rastrearCartuchoMuestreo(uncartucho) {cartuchosMuestreoRastreados.add(uncartucho)}
+  method rastrearCartucho(uncartucho) {cartuchosRastreados.add(uncartucho)}
+  method rastrearConsumible(unConsumible) {objetosRastreados.add(unConsumible)}
 }

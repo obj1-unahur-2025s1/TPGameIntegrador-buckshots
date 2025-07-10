@@ -6,11 +6,12 @@ import mesaCompleta.*
 import player.*
 import juego.*
 
+
 program BuckshotRoulette {
 	game.title("Buckshot Roulette")
 	game.height(18)
 	game.width(36)
-	game.boardGround("fondoPiso.jpg")
+	game.boardGround("pisoNuevo.jpg")
 	juego.abrirJuego()
 	game.start()
 }

@@ -19,6 +19,7 @@ object juego {
 
   method eligioDificil() = eligioDificil
   method abrirJuego() {
+    game.onTick(2000, "navegarMenu", {navegarMenu.titilar()})
     keyboard.m().onPressDo({soundProgram.cambiarMuteo()})
     soundProgram.musicaPantallaInicio()
     estoyEnPantallaInicio = true
@@ -26,6 +27,7 @@ object juego {
     game.addVisual(pantallaInicio)
     game.addVisual(botonJugar)
     game.addVisual(botonInfo)
+    game.addVisual(navegarMenu) //
 
     keyboard.up().onPressDo({
       if(estoyEnPantallaInicio and not botonInfo.estoyEnUso()) {
@@ -35,6 +37,8 @@ object juego {
         sonido.seleccion()
       }
     })
+
+
     keyboard.down().onPressDo({
       if(estoyEnPantallaInicio and not botonInfo.estoyEnUso()) {
         botonSeleccionadoInicio = botonInfo
@@ -43,7 +47,9 @@ object juego {
         sonido.seleccion()
       }
     })
-    keyboard.space().onPressDo({
+
+
+    keyboard.enter().onPressDo({
       if(estoyEnPantallaInicio) {
         botonSeleccionadoInicio.apretar()
       } else if(estoyEligiendoDificultad) {
@@ -56,12 +62,16 @@ object juego {
       if(estoyEligiendoDificultad) {
         eligioDificil = false
         sonido.seleccion()
+      } else if(botonInfo.estoyEnUso()) {
+        pantallaInformacion.diapositivaAnterior()
       }
     })
     keyboard.right().onPressDo({
       if(estoyEligiendoDificultad) {
         eligioDificil = true
         sonido.seleccion()
+      } else if(botonInfo.estoyEnUso()) {
+        pantallaInformacion.diapositivaSiguiente()
       }
     })
   }
@@ -76,6 +86,7 @@ object juego {
   }
 
   method iniciar() {
+    game.removeTickEvent("navegarMenu")
     soundProgram.quitarMusicaPantallaInicio()
     estoyEligiendoDificultad = false
     game.removeVisual(pantallaInicio)
@@ -85,7 +96,48 @@ object juego {
     mesa.primerNivel()
     game.onTick(4000, "IAJugarTurno", {ia.jugarSiCorresponde()})
     game.onTick(2000, "yaGanaste", {ia.ganarSiAmerita()})
+    game.onTick(2000, "rastreando", {rastreadorObjetos.objetosRastreados().forEach{
+      x=>x.autoEliminacion()
+    }})
+    game.onTick(2000, "rastreando", {rastreadorObjetos.cartuchosRastreados().forEach{
+      x=>x.autoEliminacion()
+    }})
+    game.onTick(2000, "rastreando", {rastreadorObjetos.cartuchosMuestreoRastreados().forEach{
+      x=>x.autoEliminacion()
+    }})
+    
+
+    game.addVisual(botonConfiguracion)
   }
+
+  var estoyEnPausa = false
+  method estoyEnPausa() = estoyEnPausa
+  method pausar() {estoyEnPausa = true}
+  method despausar() {estoyEnPausa = false}
+
+  var botonElegidoPausa = botonInfoPausa
+  method botonElegidoPausa() = botonElegidoPausa
+  method nuevoBotonPausa(unBoton) {botonElegidoPausa = unBoton}
+
+  method animacionEnEjecucion() {
+    return
+    [
+    apuntaArribaBoom,
+    apuntaArribaNoBoom,
+    apuntaAbajoBoom,
+    apuntaAbajoNoBoom,
+    apuntaArribaBoomRecortada,
+    apuntaArribaNoBoomRecortada,
+    apuntaAbajoBoomRecortada,
+    apuntaAbajoNoBoomRecortada
+    ].any{x=>x.estoyEnEjecucion()}
+  }
+
+  var estoyEnGameplay = false
+
+  method estoyEnGameplay() = estoyEnGameplay
+  method empezarGameplay() {estoyEnGameplay = true}
+  method terminarGameplay() {estoyEnGameplay = false}
 }
 
 object dificultadFacil {
@@ -143,16 +195,210 @@ object botonInfo {
   method image() = if(estoySeleccionado) "boton_info_apretado.png" else "boton_info.png"
 }
 
+object botonConfiguracion {
+  var estoyEnUso = false
+
+  method apretar() {
+    if(estoyEnUso) {
+      juego.despausar()
+      estoyEnUso = false
+      game.removeVisual(pantallaBlur)
+      game.addVisual(self)
+
+      game.removeVisual(botonMenuPausa)
+      game.removeVisual(botonInfoPausa)
+
+      self.quitarPantallaInfoSiempre()
+    } else {
+      juego.pausar()
+      estoyEnUso = true
+      game.addVisual(pantallaBlur)
+      game.removeVisual(self)
+      
+      game.addVisual(botonMenuPausa)
+      game.addVisual(botonInfoPausa)
+    }
+  }
+
+  method quitarPantallaInfoSiempre() {
+    if(botonInfoPausa.estoyEnUso()) {
+      botonInfoPausa.apretar()
+      game.removeVisual(botonInfoPausa)
+      game.removeVisual(botonMenuPausa)
+    }
+  }
+
+  method position() = game.at(32, 13)
+  method image() = "botonConfiguracion3.png"
+}
+
+object menuConfiguracion {} // Lo hago un objeto (?  AGREGAR UN RECORDATORIO DE LA LETRA P !!!
+
+object navegarMenu {
+  method titilar() {
+    if(game.hasVisual(self)) {
+      game.schedule(1000, {game.removeVisual(self)})
+    } else {
+      game.addVisual(self)
+    }
+  }
+  method quitarSeguro() {
+    if(game.hasVisual(self)) {
+      game.removeVisual(self)
+    }
+  }
+
+  method position() = game.at(11, 0)
+  method image() = "navegarMenu600_3.png"
+}
+
+
+object pantallaBlur {
+  method image() = "yaPagueWindowsConMenuPausa.jpg"
+  method position() = game.origin()
+}
+
+object botonMenuPausa {
+  var estoySeleccionado = false
+
+  method seleccionar() {estoySeleccionado = true}
+  method deseleccionar() {estoySeleccionado = false}
+  
+  method apretar() { // Chequear que cierre y reinicie TODO
+    ia.desesposar()
+    jugador.desesposar()
+    juego.terminarGameplay()
+    game.clear()
+    
+    ia.menu()
+    jugador.menu()
+    escopeta.menu()
+    cartuchosEnMesa.barrerCartuchos()
+    objetoEspejo.imagen("vacio.png")
+
+    juego.abrirJuego()
+  }
+
+
+  method position() = game.at(15, 9)
+  method image() = if(estoySeleccionado) "botonMenuSeleccionado.png" else "botonMenu.png"
+}
+
+object botonInfoPausa{
+  var estoySeleccionado = true
+
+  var estoyEnUso = false
+
+  method seleccionar() {
+    estoySeleccionado = true
+  }
+  method deseleccionar() {estoySeleccionado = false}
+
+  method estoyEnUso() = estoyEnUso
+
+  method apretar() {
+    if(estoyEnUso) {
+      estoyEnUso = false
+
+      game.addVisual(botonMenuPausa)
+      game.addVisual(self)
+      game.removeVisual(pantallaInformacion) 
+
+      
+    } else {
+      estoyEnUso = true
+
+      game.removeVisual(botonMenuPausa)
+      game.removeVisual(self)
+      game.addVisual(pantallaInformacion)
+    }
+  }
+
+  method position() = game.at(15, 6)
+  method image() = if(estoySeleccionado) "botonInfoSeleccionado2.png" else "boton_info.png"
+}
+
 object pantallaInicio {
   method image() = "pantalla_inicioFinal.png"
   method position() = game.origin() 
 }
 
 object pantallaInformacion {
-  method image() = "instrucciones2.png"
+  var numeroDiapositiva = 0
+  const diapositivas = [
+    "diapositiva_1.png",
+    "diapositiva_2.png",
+    "diapositiva_3.png",
+    "diapositiva_4.png",
+    "diapositiva_5.png",
+    "diapositiva_6.png",
+    "diapositiva_7.png",
+    "diapositiva_8.png",
+    "diapositiva_9.png",
+    "diapositiva_10.png",
+    "diapositiva_11.png",
+    "diapositiva_12.png"
+  ]
+  
+  method diapositivaActual() = diapositivas.get(numeroDiapositiva)
+  method diapositivaSiguiente() {
+    if((diapositivas.size() - 1) == numeroDiapositiva) {
+      numeroDiapositiva = 0
+    } else {
+      numeroDiapositiva += 1
+    }
+  }
+  method diapositivaAnterior() {
+    if(numeroDiapositiva == 0) {
+      numeroDiapositiva = diapositivas.size() - 1
+    } else {
+      numeroDiapositiva -= 1
+    }
+  }
+
+  method image() = self.diapositivaActual()
   method position() = game.origin() 
 }
 
+object pantallaControles {
+  method mostrar() {
+    if(game.hasVisual(self)) {
+      game.removeVisual(self)
+    } else {
+      game.addVisual(self)
+    }
+  }
+
+  method image() = "modoInformacionListo2.png"
+  method position() = game.origin()
+}
+
+object recordatorioTeclas {
+  method imagen() {
+    return
+    if(maletin.estoyEnUso())
+      "informacionMaletin2.png"
+    else if(!slotEscopeta.seleccionada() and monitor.turnoDe() == jugador)
+      "informacionEscopeta2.png"
+    else "vacio.png"
+  }
+
+  method mostrarSeguro() {
+    if(!game.hasVisual(self)) {
+      game.addVisual(self)
+    }
+  }
+
+  method image() = self.imagen()
+  method position() = game.origin()
+}
+
+object recordatorioAdrenalina {
+  method imagen() = "informacionAdrenalina.png"
+
+  method image() = self.imagen()
+  method position() = game.origin()
+}
 
 object preparativos {
   method inicializar() {
@@ -175,7 +421,16 @@ object preparativos {
       )
     )
     configuracion.activarTeclas()
-    [mesa, escopeta, jugador, ia, efectosEstado, monitor, mostrarTurno].forEach({ x => game.addVisual(x) })
+    [
+    mesa,
+    escopeta,
+    jugador,
+    ia,
+    efectosEstado,
+    monitor,
+    mostrarTurno,
+    objetoEspejo
+    ].forEach({ x => if(not game.hasVisual(x)) {game.addVisual(x)} })
     //jugador.inventario().forEach{x=>game.addVisual(x)}
     soundProgram.musicaDeFondo()
   }
@@ -183,30 +438,84 @@ object preparativos {
 
 object configuracion {
   method activarTeclas() {
-    keyboard.right().onPressDo({if(not pantallazo.estasKO()) { manejoJoystick.derecha() }})
-    keyboard.left().onPressDo({if(not pantallazo.estasKO())  { manejoJoystick.izquierda() }})
-    keyboard.up().onPressDo({if(not pantallazo.estasKO())    { manejoJoystick.arriba() }})
-    keyboard.down().onPressDo({if(not pantallazo.estasKO())  { manejoJoystick.abajo() }})
+    keyboard.right().onPressDo({
+      if(not pantallazo.estasKO() and !juego.estoyEnPausa()) {
+        manejoJoystick.derecha()
+      } else if(botonInfoPausa.estoyEnUso()) {
+        pantallaInformacion.diapositivaSiguiente()
+      }
+    })
+
+    keyboard.left().onPressDo({
+      if(not pantallazo.estasKO() and !juego.estoyEnPausa()) {
+        manejoJoystick.izquierda()
+      } else if(botonInfoPausa.estoyEnUso()) {
+        pantallaInformacion.diapositivaAnterior()
+      }
+    })
     
-    keyboard.e().onPressDo({if(not maletin.estoyEnUso() and not ia.tiempoMuerto() and not pantallazo.estasKO()) {manejoJoystick.usarEscopeta()} })
+    keyboard.up().onPressDo({
+      if(not pantallazo.estasKO() and !juego.estoyEnPausa()) {
+        manejoJoystick.arriba()
+      } else if(juego.estoyEnPausa() and !botonInfoPausa.estoyEnUso()) {
+        botonMenuPausa.seleccionar()
+        botonInfoPausa.deseleccionar()
+        juego.nuevoBotonPausa(botonMenuPausa)
+      }
+    })
+
+    keyboard.down().onPressDo({
+      if(not pantallazo.estasKO() and !juego.estoyEnPausa()) {
+        manejoJoystick.abajo()
+      } else if(juego.estoyEnPausa() and !botonInfoPausa.estoyEnUso()) {
+        botonInfoPausa.seleccionar()
+        botonMenuPausa.deseleccionar()
+        juego.nuevoBotonPausa(botonInfoPausa)
+      }
+    })
+    
+    keyboard.e().onPressDo({
+      if(not maletin.estoyEnUso() and not ia.tiempoMuerto() and not pantallazo.estasKO() and !juego.estoyEnPausa()) {
+        manejoJoystick.usarEscopeta()
+      }
+    })
     // Automatizar el inicio de nueva ronda
-    keyboard.enter().onPressDo({ jugador.usarSlotSeleccionado() })
+    keyboard.enter().onPressDo({
+      if(!juego.estoyEnPausa()) {
+        jugador.usarSlotSeleccionado()
+        textoConsumible.imagen("vacio.png")
+      } else {
+        juego.botonElegidoPausa().apretar()
+      }
+      if(game.hasVisual(recordatorioAdrenalina)) {
+        game.removeVisual(recordatorioAdrenalina)
+      }
+      })
     
-    keyboard.i().onPressDo(
-      { game.say(
-          jugador.consumibleSeleccionado(),
-          jugador.descripcionDelSeleccionado()
-        ) }
-    )
+    keyboard.i().onPressDo({
+      if(not pantallazo.estasKO() and not juego.estoyEnPausa()) {
+        pantallaControles.mostrar()
+      }
+    })
     
     keyboard.d().onPressDo(
-      { if (slotEscopeta.seleccionada()) escopeta.disparar(jugador) }
+      { if (slotEscopeta.seleccionada() and !juego.estoyEnPausa()) {
+        escopeta.dispararArriba(jugador)
+        slotEscopeta.deseleccionar()
+        // manejoJoystick.quitarEscopetaSegura()
+        }
+      }
     )
     keyboard.a().onPressDo(
-      { if (slotEscopeta.seleccionada()) escopeta.dispararse(jugador) }
+      { if (slotEscopeta.seleccionada() and !juego.estoyEnPausa()) {
+        escopeta.dispararAbajo(jugador)
+        slotEscopeta.deseleccionar()
+        // manejoJoystick.quitarEscopetaSegura()
+        }
+      }
     )
     
-
+    keyboard.q().onPressDo({mesa.nuevaRonda()})
 
     keyboard.num1().onPressDo({if(jugador.puedeRobar()) {ia.inventario().get(0)}.usar(); jugador.noPodesRobar()})
     keyboard.num2().onPressDo({if(jugador.puedeRobar()) {ia.inventario().get(1)}.usar(); jugador.noPodesRobar()})
@@ -217,8 +526,13 @@ object configuracion {
     keyboard.num7().onPressDo({if(jugador.puedeRobar()) {ia.inventario().get(6)}.usar(); jugador.noPodesRobar()})
     keyboard.num8().onPressDo({if(jugador.puedeRobar()) {ia.inventario().get(7)}.usar(); jugador.noPodesRobar()})
 
-    keyboard.space().onPressDo({if(maletin.estoyEnUso()) {maletin.siguienteObjeto()} })
+    keyboard.space().onPressDo({
+      if(maletin.estoyEnUso() and !juego.estoyEnPausa()) {
+        maletin.siguienteObjetoSiHay()
+      }
+    })
 
+    keyboard.p().onPressDo({botonConfiguracion.apretar()}) //
   }
 }
 
@@ -228,6 +542,7 @@ object pantalla {
   method finDelJuego() = finDelJuego
 
   method final() {
+    juego.terminarGameplay()
     soundProgram.mutear()
     finDelJuego = true
     game.clear()
@@ -257,7 +572,7 @@ object pantallazo {
       self.sacarKO()
     })
   }
-  method image() = "pantallaNegro.png"
+  method image() = "pantallaNEGRA.png"
   method position() = game.origin()
 }
 
@@ -277,30 +592,30 @@ object sonido {
   
   ////escopeta////
   method disparo_bala_cargada() {
-    game.sound("disparo_bala_cargada.mp3").play()
+    game.sound("disparo_bala_cargada_2.mp3").play()
     
   }
   
   method disparo_bala_fogueo() {
-    game.sound("disparo_bala_fogueo.mp3").play()
+    game.sound("disparo_bala_fogueo_2.mp3").play()
   }
   
   ///jugador////
   method ganarVida() {
-    game.sound("ganarVida.mp3").play()
+    game.sound("ganarVida_2.mp3").play()
   }
   
   method perderVida() {
-    game.sound("perderVida.mp3").play()
+    game.sound("perderVida_2.mp3").play()
   }
   
   method desfibrilador() {
-    game.sound("desfibrilador.mp3").play()
+    game.sound("desfibrilador_2.mp3").play()
   }
   
   ////objetos/////
   method serrucho() {
-    game.sound("serrucho.mp3").play()
+    game.sound("serrucho_2.mp3").play()
   }
   
   method lupa() {
@@ -312,7 +627,7 @@ object sonido {
   }
   
   method ponerEsposas() {
-    game.sound("ponerEsposas.mp3").play()
+    game.sound("ponerEsposas_2.mp3").play()
   }
   
   method sigoEsposado() {
@@ -367,7 +682,7 @@ object soundProgram {
   const property musicaInicio = game.sound("Blank Shell.wav")
 
   method musicaDeFondo() {
-    musicaJuego.volume(0.05)
+    musicaJuego.volume(0.50) //
     musicaJuego.shouldLoop(true)
     game.schedule(500, { musicaJuego.play() })
   }
@@ -377,7 +692,7 @@ object soundProgram {
   }
 
   method musicaPantallaInicio() {
-    musicaInicio.volume(0.05)
+    // musicaInicio.volume(0.05)
     musicaInicio.shouldLoop(true)
     game.schedule(500, { musicaInicio.play() })
   }

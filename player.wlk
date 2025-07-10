@@ -61,33 +61,17 @@ object jugador {
     }
   }
 
+
   method nuevoConsumible() {
     var consumibleRandom = mesa.randomReadyObject()
+    rastreadorObjetos.rastrearConsumible(consumibleRandom)
     var slotElegido = self.unSlotVacio()
     slotElegido.colocar(consumibleRandom)
     consumibleRandom.nuevaPosicion(slotElegido.position())
-    maletin.nuevoObjeto(self.unoAsi(consumibleRandom))
+    
     maletin.nuevoObjetoInventario(consumibleRandom)
   }
-  method unoAsi(unConsumible) {
-    return
-    if     (unConsumible.toString() == "a Cerveza")         {new Cerveza()}
-    else if(unConsumible.toString() == "a CervezaLight")    {new CervezaLight()}
-    else if(unConsumible.toString() == "a CervezaVencida")  {new CervezaVencida()}
-    else if(unConsumible.toString() == "a Soda")            {new Soda()}
-    else if(unConsumible.toString() == "a Pucho")           {new Pucho()}
-    else if(unConsumible.toString() == "a Habano")          {new Habano()}
-    else if(unConsumible.toString() == "a Venda")           {new Venda()}
-    else if(unConsumible.toString() == "a Pastilla")        {new Pastilla()}
-    else if(unConsumible.toString() == "a Serrucho")        {new Serrucho()}
-    else if(unConsumible.toString() == "a SerruchoOxidado") {new SerruchoOxidado()}
-    else if(unConsumible.toString() == "a Lupa")            {new Lupa()}
-    else if(unConsumible.toString() == "a Telefono")        {new Telefono()}
-    else if(unConsumible.toString() == "a Inversor")        {new Inversor()}
-    else if(unConsumible.toString() == "a Esposas")         {new Esposas()}
-    else if(unConsumible.toString() == "a Adrenalina")      {new Adrenalina()}
-    else {new Adrenalina()}
-  }
+  
 
   method unSlotVacio() = inventario.find( {x => x.consumible().tipoConsumible() == "SlotVacio"} )
 
@@ -162,17 +146,6 @@ object jugador {
 
   method unConsumible() = self.todosLosConsumibles().anyOne()
 
-  method image() {
-    return
-    if(vidas == 4) "contador4.png"
-    else if(vidas == 3) "contador3.png"
-    else if(vidas == 2) "contador2.png"
-    else if(vidas == 1) "contador1.png"
-    else "contador0.png"
-  }
-
-  method position() = game.at(27, 3)
-
   method jugarSiCorresponde() {
     if(self.estaEsposado()) {
       sonido.sigoEsposado()
@@ -185,5 +158,27 @@ object jugador {
       self.liberarse()
     }
   }
+
+
+  method menu() {
+    self.limpiarObjetos()
+    inventario.clear()
+    vidas = 0
+  }
+
+
+  method tengoConsumible(unConsumible) = inventario.any{x=>x.consumible() == unConsumible}
+
+
+  method image() {
+    return
+    if(vidas == 4) "contador4.png"
+    else if(vidas == 3) "contador3.png"
+    else if(vidas == 2) "contador2.png"
+    else if(vidas == 1) "contador1.png"
+    else "contador0.png"
+  }
+
+  method position() = game.at(27, 3)
 }
 

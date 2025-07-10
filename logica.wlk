@@ -40,16 +40,16 @@ class Estrategia {
 
     method dispararSiSePuede() {
         if(not escopeta.sinBalas()) {
-            escopeta.disparar(ia)
-            ia.termineEjecucion()
+            escopeta.dispararAbajo(ia)
+            game.schedule(4000, {ia.termineEjecucion()})
         } else {
             ia.termineEjecucion()
         }
     }
     method dispararseSiSePuede() {
         if(not escopeta.sinBalas()) {
-            escopeta.dispararse(ia)
-            ia.termineEjecucion()
+            escopeta.dispararArriba(ia)
+            game.schedule(4000, {ia.termineEjecucion()})
         } else {
             ia.termineEjecucion()
         }
@@ -71,11 +71,11 @@ class TiroSeguro inherits Estrategia{
 class Default inherits Estrategia{ // Si hay 2 balas más de mentira que de verdad, se autoDispara
     override method ejecutar() {
         if(ia.cantVerdad() <= (ia.cantFogueo() - 2)) {
-            escopeta.dispararse(ia)
-            ia.termineEjecucion()
+            escopeta.dispararArriba(ia)
+            game.schedule(4000, {ia.termineEjecucion()})
         } else {
-            escopeta.disparar(ia)
-            ia.termineEjecucion()
+            escopeta.dispararAbajo(ia)
+            game.schedule(4000, {ia.termineEjecucion()})
         }
     }
 }
